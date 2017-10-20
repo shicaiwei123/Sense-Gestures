@@ -1,5 +1,7 @@
 
 %% 参数初始化
+%分辨率,7hz
+%速度下限10cm/s
 clear all
 timeLength=0.5;
 ztemp=0;
@@ -37,6 +39,7 @@ y=wavePlay(18000,0,0.4);
 y_get=voice_get(fs,timeLength);
 %去除无效部分
 signalLength=length(y_get);
+ySqure=y_get(fix(0.6*signalLength)+1:signalLength);
 y_get=y_get(fix(0.72*signalLength)+1:signalLength);
 if ~doSTFT
     signalLength=even(length(y_get));
@@ -44,14 +47,10 @@ if ~doSTFT
     z=abs(fftY(1:signalLength/2));
     z=20*log10(z);
     z=z*2;
-%     z=rc*z+(1-rc)*ztemp;
-%     ztemp=z;    
-% %去除背景噪声
-%     z=z-a(1:length(z));
-    fftX=(1:signalLength/2)*fs/(length(y_get)); % 确定频谱图频率刻度，f/N是分辨率。
+    fftX=(1:signalLength/2)*fs/(length(y_get)); % 确定频谱图频率刻度
     figure(1)
-    plot(fftX,z);
-    axis([8800,9200,20,75]);
+    stem(fftX,z);
+    axis([8700,9300,10,75]);
     xlabel('F/Hz');
     ylabel('strength');
     title('反射信号频域');
@@ -72,7 +71,7 @@ else
     end
 end
 toc
-end
+% end
 % toc
 % end
 %% 
@@ -82,24 +81,53 @@ trans=length(y_get)/fs;   %横坐标转换比例
 flagx=fix(9010*trans);     %中间点数
 flagy=z(flagx);            
 if(flagy>30)              %中间值判断是否有声波
-    flagx=fix(300*trans);     %中间点数
+%     flagx=fix(300*trans);     %中间点数
+    flagx=44;
     zJudgment=z(fix(8700*trans):fix(9300*trans));
     zJudgment(zJudgment<20)=0;  %将小于20的点破零，消除干扰。
     Nonzero=find(zJudgment~=0); %求非零数组下标
-    x1=flagx-Nonzero(1)
-    x2=Nonzero(end)-flagx
-    if(x1>0)
-        disp('远离');
-    elseif(x2>5)
-         disp('靠近');
+     left=Nonzero;
+    left(left>=flagx)=0;
+    leftNum=length(find(left))%横坐标小于flagx的点数
+    right=Nonzero;
+    right(right<=flagx)=0;
+    rightNum=length(find(right))%横坐标大于flagx的点数
+    if(leftNum>rightNum)
+        out=1;
+    elseif(leftNum<rightNum)
+        out=2;
     else
-         disp('静止');
-
+        out=0;
     end
+%     x1=flagx-Nonzero(1)
+%     x2=Nonzero(end)-flagx
+%     if(x1>0)
+%         disp('远离');
+%     elseif(x2>5)
+%          disp('靠近');
+%     else
+%          disp('静止');
+% 
+%     end
 else
     disp('无数据');
 end
+%     gesture=out;
+%     fftSqure=fft(ySqure);
+%     zSqure=abs(fftSqure(1:fix(length(ySqure)/2)));
+%     zSqure=20*log10(zSqure);
+%     zSqure=zSqure*2;
+%     zSqure=zSqure(fix(8700*trans):fix(9300*trans));
+%     zSqure(zSqure<20)=0;
+%     sumSqure=sum(zSqure(45:85))
+if(gesture==1)
+    disp('远离')
+    elseif(gesture==2)
+    disp('靠近')
+    else
+   disp('静止')
 toc
+end
 end
 %% 提取环境背景噪声，求均值。
 initalFlag=100

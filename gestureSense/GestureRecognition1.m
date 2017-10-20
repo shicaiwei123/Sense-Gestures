@@ -22,7 +22,7 @@ function varargout = GestureRecognition1(varargin)
 
 % Edit the above text to modify the response to help GestureRecognition1
 
-% Last Modified by GUIDE v2.5 12-Oct-2017 21:21:00
+% Last Modified by GUIDE v2.5 20-Oct-2017 18:47:33
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -53,11 +53,13 @@ function GestureRecognition1_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to GestureRecognition1 (see VARARGIN)
 
 % Choose default command line output for GestureRecognition1
-global flag;
+global flag
+flag=1;
 handles.output = hObject;
 MyStruct=struct('fs',44100,'time',0.5);
 handles.MyStruct=MyStruct;
-flag=0;
+% handles.flag=flag;
+% flag=0;
 
 % Update handles structure
 guidata(hObject, handles);
@@ -82,12 +84,69 @@ function pushbutton1_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-while(1)
+% handles.flag=1;
+global flag
+flag=1;
+while(flag==1)
 fs=handles.MyStruct.fs;
 time=handles.MyStruct.time;
-out=gesture_fuction(fs,time);
-gesture=out(1);
-% fps=out(2)
+tic
+wavePlay(18000,0,0.4);
+y_get=voice_get(fs,time);
+signalLength=length(y_get);
+y_get=y_get(fix(0.72*signalLength)+1:signalLength);
+
+    signalLength=even(length(y_get));
+    fftY=fft(y_get);
+    z=abs(fftY(1:signalLength/2));
+    z=20*log10(z);
+    z=z*2;
+    
+    fftX=(1:signalLength/2)*fs/(length(y_get)); % 确定频谱图频率刻度，f/N是分辨率。
+    axes(handles.axes1);
+    stem(fftX,z);
+    axis([8800,9200,15,75]);
+    xlabel('F/Hz');
+    ylabel('strength');
+    title('反射信号频域');
+    
+    trans=length(y_get)/fs;   %横坐标转换比例
+    flagx=fix(9010*trans);     %中间点数
+    flagy=z(flagx);            
+    if(flagy>30)              %中间值判断是否有声波
+%     flagx=fix(300*trans);     %中间点数
+    flagx=44;
+    zJudgment=z(fix(8700*trans):fix(9300*trans));
+    zJudgment(zJudgment<20)=0;  %将小于20的点破零，消除干扰。
+    Nonzero=find(zJudgment~=0); %求非零数组下标
+    left=Nonzero;
+    left(left>=flagx)=0;
+    leftNum=length(find(left))%横坐标小于flagx的点数
+    right=Nonzero;
+    right(right<=flagx)=0;
+    rightNum=length(find(right))%横坐标大于flagx的点数
+    if(leftNum>rightNum)
+        out=1;
+    elseif(leftNum<rightNum)
+        out=2;
+    else
+        out=0;
+    end
+%     x1=flagx-Nonzero(1)
+%     x2=Nonzero(end)-flagx
+%         if(x1>0)
+%             out=1;
+%         elseif(x2>3)
+%             out=2;
+%         else
+%             out=0;
+%         end
+    else
+             out=0;
+             disp('无数据')
+    end
+    toc
+    gesture=out;
 if(gesture==1)
     set(handles.edit2,'string','远离')
     elseif(gesture==2)
@@ -143,3 +202,24 @@ function edit2_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on button press in pushbutton4.
+function pushbutton4_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton4 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% handles.flag=0;
+% guidata(hObject, handles);
+global flag
+flag=0;
+
+
+
+% --- Executes on button press in pushbutton5.
+function pushbutton5_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton5 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+axes(handles.axes1)
+cla;

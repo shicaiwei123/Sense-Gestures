@@ -24,18 +24,22 @@ y_get=y_get(fix(0.72*signalLength)+1:signalLength);
     flagx=fix(9010*trans);     %中间点数
     flagy=z(flagx);            
     if(flagy>30)              %中间值判断是否有声波
-    flagx=fix(300*trans);     %中间点数
-    zJudgment=z(fix(8700*trans):fix(9300*trans));
-    zJudgment(zJudgment<20)=0;  %将小于20的点破零，消除干扰。
-    Nonzero=find(zJudgment~=0); %求非零数组下标
-    x1=flagx-Nonzero(1)
-    x2=Nonzero(end)-flagx
-        if(x1>0)
+        flagx=fix(300*trans);     %中间点数
+        zJudgment=z(fix(8700*trans):fix(9300*trans));
+        zJudgment(zJudgment<20)=0;  %将小于20的点破零，消除干扰。
+        Nonzero=find(zJudgment~=0); %求非零数组下标
+        left=Nonzero;
+        left(left>=flagx)=0;
+        leftNum=length(find(left))%横坐标小于flagx的点数
+        right=Nonzero;
+        right(right<=flagx)=0;
+        rightNum=length(find(right))%横坐标大于flagx的点数
+        if(leftNum>rightNum)
             out=1;
-        elseif(x2>3)
-            out=2;
-        else
-            out=0;
+            elseif(leftNum<rightNum)
+                out=2;
+            else
+                out=0;
         end
     else
              out=0;
